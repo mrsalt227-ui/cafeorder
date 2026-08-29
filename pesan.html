@@ -1,0 +1,1145 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#f7f4ef" />
+<title>Self Order — Scan & Order</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+<style>
+  /* ============ TOKEN / PALET (dari test.html) ============ */
+  :root{
+    --cream:#f7f4ef;
+    --cream-2:#faf8f4;
+    --card:#ffffff;
+    --sage:#8aa888;
+    --sage-deep:#6f8f6d;
+    --green-text:#34492f;
+    --green-soft:#5d7355;
+    --terra:#8a4f3b;
+    --terra-2:#9a5a44;
+    --ink:#1f2421;
+    --muted:#767a73;
+    --line:#e7e2d8;
+    --danger:#b33a3a;
+    --shadow:0 10px 30px rgba(40,35,25,.08);
+    --shadow-sm:0 4px 14px rgba(40,35,25,.06);
+    --radius:18px;
+    --header-h:74px;
+    --chipbar-h:62px;
+    --safe-b:env(safe-area-inset-bottom,0px);
+    --font:'Poppins',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:var(--font);
+    background:var(--cream);
+    color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+    line-height:1.5;
+    -webkit-tap-highlight-color:transparent;
+  }
+  button{font-family:inherit;cursor:pointer;border:none;background:none}
+  img{display:block;max-width:100%}
+  ::-webkit-scrollbar{width:10px;height:10px}
+  ::-webkit-scrollbar-thumb{background:#d8d2c6;border-radius:20px}
+
+  /* ============ SCREEN: PILIH KAFE ============ */
+  #screen-pilih-kafe{
+    min-height:100vh;display:flex;flex-direction:column;align-items:center;
+    padding:60px 20px 40px;background:var(--cream);
+  }
+  #screen-pilih-kafe.hide{display:none}
+  .pk-wrap{width:100%;max-width:440px}
+  .pk-badge{
+    width:56px;height:56px;border-radius:50%;background:var(--sage);
+    display:flex;align-items:center;justify-content:center;margin:0 auto 18px;
+    box-shadow:var(--shadow-sm);
+  }
+  .pk-badge svg{width:28px;height:28px;color:#fff}
+  .pk-title{font-size:1.7rem;font-weight:800;color:var(--green-text);text-align:center}
+  .pk-sub{text-align:center;color:var(--muted);margin-top:6px;margin-bottom:26px;font-size:.92rem}
+  .pk-search{
+    display:flex;align-items:center;gap:10px;background:#efeae1;border:1px solid var(--line);
+    border-radius:40px;padding:12px 18px;margin-bottom:18px;
+  }
+  .pk-search svg{flex:none;color:var(--muted)}
+  .pk-search input{border:none;background:none;outline:none;width:100%;font-size:.95rem;font-family:var(--font);color:var(--ink)}
+  .pk-list{display:flex;flex-direction:column;gap:12px}
+  .pk-card{
+    background:var(--card);border-radius:16px;box-shadow:var(--shadow-sm);
+    padding:14px;display:flex;align-items:center;gap:14px;cursor:pointer;transition:.18s;
+  }
+  .pk-card:hover{transform:translateY(-2px);box-shadow:var(--shadow);border-color:var(--sage)}
+  .pk-icon{
+    width:48px;height:48px;border-radius:12px;flex:none;font-size:1.5rem;
+    display:grid;place-items:center;background:linear-gradient(135deg,#e9ddca,#cdbfa6);
+  }
+  .pk-name{font-weight:700;font-size:1rem;color:var(--ink)}
+  .pk-desc{color:var(--muted);font-size:.82rem;margin-top:3px}
+  .pk-arrow{color:var(--sage-deep);font-weight:800;font-size:1.2rem}
+  .pk-empty{text-align:center;color:var(--muted);padding:40px 10px;font-size:.9rem}
+
+  /* ============ APP SHELL ============ */
+  #app-shell{display:none}
+  #app-shell.show{display:block}
+
+  /* ============ HEADER ============ */
+  .header{
+    position:sticky;top:0;z-index:50;
+    height:var(--header-h);
+    background:rgba(247,244,239,.9);
+    backdrop-filter:saturate(140%) blur(10px);
+    border-bottom:1px solid var(--line);
+    display:flex;align-items:center;gap:14px;
+    padding:0 clamp(14px,3vw,34px);
+  }
+  .logo{font-weight:700;font-size:1.25rem;color:var(--green-text);white-space:nowrap;letter-spacing:.2px;line-height:1.15}
+  .logo b{font-weight:800;display:block}
+  .logo small{display:block;font-size:.68rem;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+
+  .table-chip{
+    display:inline-flex;align-items:center;gap:6px;
+    background:#efeae1;border:1px dashed var(--line);
+    border-radius:999px;padding:6px 12px;font-size:.72rem;font-weight:600;color:var(--green-soft);
+    white-space:nowrap;
+  }
+  .table-chip .dot{width:6px;height:6px;border-radius:50%;background:var(--sage-deep)}
+  .table-chip.no-table .dot{background:var(--terra)}
+  .ganti-btn{
+    font-size:.72rem;font-weight:700;color:var(--terra);background:#f1e6df;
+    padding:6px 10px;border-radius:8px;white-space:nowrap;
+  }
+
+  .search{
+    flex:1;max-width:640px;margin:0 auto;
+    display:flex;align-items:center;gap:10px;
+    background:#efeae1;border:1px solid var(--line);
+    border-radius:40px;padding:11px 18px;color:var(--muted);
+    transition:.2s;
+  }
+  .search:focus-within{background:#fff;border-color:var(--sage);box-shadow:0 0 0 4px rgba(138,168,136,.18)}
+  .search svg{flex:none}
+  .search input{border:none;background:none;outline:none;width:100%;font-size:.95rem;color:var(--ink);font-family:var(--font)}
+
+  .head-actions{display:flex;align-items:center;gap:6px;margin-left:auto}
+  .icon-btn{
+    width:42px;height:42px;border-radius:50%;
+    display:grid;place-items:center;color:var(--green-text);
+    position:relative;transition:.18s;
+  }
+  .icon-btn:hover{background:#ece6db}
+  .badge{
+    position:absolute;top:3px;right:3px;min-width:18px;height:18px;padding:0 4px;
+    background:var(--sage-deep);color:#fff;border-radius:20px;
+    font-size:.68rem;font-weight:700;display:grid;place-items:center;
+  }
+  .search-toggle{display:none}
+
+  /* ============ TABLE INFO BAR ============ */
+  .infobar{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:10px clamp(14px,4vw,24px);
+    background:var(--cream-2);border-bottom:1px solid var(--line);
+  }
+
+  /* ============ CHIP KATEGORI (mobile/tablet) ============ */
+  .chipbar{
+    display:flex;
+    position:sticky;top:var(--header-h);z-index:40;
+    background:rgba(247,244,239,.92);
+    backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--line);
+    overflow-x:auto;overflow-y:hidden;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+    padding:12px clamp(14px,4vw,24px);
+    gap:10px;
+  }
+  .chipbar::-webkit-scrollbar{display:none}
+  .chip{
+    flex:none;display:flex;align-items:center;gap:8px;
+    padding:9px 16px;border-radius:30px;
+    background:#fff;border:1px solid var(--line);
+    color:var(--green-soft);font-weight:600;font-size:.9rem;white-space:nowrap;
+    transition:.18s;
+  }
+  .chip svg{width:17px;height:17px}
+  .chip.active{background:var(--sage);border-color:var(--sage);color:#fff;box-shadow:var(--shadow-sm)}
+
+  /* ============ LAYOUT UTAMA ============ */
+  .layout{
+    display:grid;
+    grid-template-columns:1fr;
+    max-width:1480px;margin:0 auto;
+    align-items:start;
+  }
+  .sidebar{display:none}
+  .side-head h1{font-size:2.2rem;font-weight:800;color:var(--green-text);line-height:1}
+  .side-head p{color:var(--muted);margin-top:6px;font-size:.92rem}
+  .nav{display:flex;flex-direction:column;gap:6px;margin-top:26px}
+  .nav a{
+    display:flex;align-items:center;gap:13px;
+    padding:13px 16px;border-radius:14px;
+    color:var(--green-soft);font-weight:600;text-decoration:none;transition:.18s;
+    cursor:pointer;
+  }
+  .nav a svg{width:20px;height:20px}
+  .nav a:hover{background:#efeae1}
+  .nav a.active{background:var(--sage);color:#fff}
+  .promo{
+    margin-top:30px;background:linear-gradient(150deg,var(--green-text),var(--sage-deep));
+    color:#fff;border-radius:var(--radius);padding:20px;
+  }
+  .promo h4{font-size:1.02rem}
+  .promo p{font-size:.82rem;opacity:.85;margin:6px 0 14px}
+
+  .content{padding:clamp(18px,3vw,40px) clamp(14px,3vw,34px) 120px;min-width:0}
+  .section{margin-bottom:46px;scroll-margin-top:calc(var(--header-h) + var(--chipbar-h) + 12px)}
+  .section h2{font-size:clamp(1.5rem,4vw,2.2rem);font-weight:800;letter-spacing:-.5px}
+  .section .sub{color:var(--muted);margin-top:4px;margin-bottom:22px;font-size:.9rem}
+
+  .grid{
+    display:grid;gap:20px;
+    grid-template-columns:repeat(auto-fill,minmax(230px,1fr));
+  }
+  .card{
+    background:var(--card);border-radius:var(--radius);overflow:hidden;
+    box-shadow:var(--shadow-sm);display:flex;flex-direction:column;
+    transition:transform .2s,box-shadow .2s;
+  }
+  .card.out{opacity:.55}
+  .card:hover{transform:translateY(-4px);box-shadow:var(--shadow)}
+  .thumb{position:relative;aspect-ratio:4/3;overflow:hidden;display:grid;place-items:center;font-size:3rem;background:linear-gradient(135deg,#e9ddca,#cdbfa6)}
+  .tag{
+    position:absolute;top:12px;left:12px;
+    font-size:.65rem;font-weight:700;letter-spacing:.5px;color:#fff;
+    padding:5px 12px;border-radius:30px;text-transform:uppercase;
+  }
+  .tag.habis{background:var(--danger)}
+  .tag.low{background:#c58a2e}
+  .card-body{padding:16px 16px 18px;display:flex;flex-direction:column;flex:1}
+  .row1{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+  .card-body h3{font-size:1.02rem;font-weight:700}
+  .stok-txt{font-size:.72rem;color:var(--muted);margin-top:3px;font-weight:600}
+  .stok-txt.low{color:#c58a2e}
+  .stok-txt.habis{color:var(--danger)}
+  .row2{display:flex;justify-content:space-between;align-items:center;margin-top:auto;padding-top:16px}
+  .price{color:var(--green-soft);font-weight:700;font-size:1.02rem}
+  .add{
+    width:40px;height:40px;border-radius:50%;background:var(--sage-deep);color:#fff;
+    display:grid;place-items:center;transition:.18s;flex:none;
+  }
+  .add:hover{background:var(--green-text);transform:scale(1.08)}
+  .add:active{transform:scale(.92)}
+  .add:disabled{background:#cfc9ba;cursor:not-allowed;transform:none}
+  .mini-stepper{display:flex;align-items:center;gap:8px;background:#f1ece3;border-radius:30px;padding:4px 6px}
+  .mini-stepper button{width:26px;height:26px;border-radius:50%;background:var(--sage-deep);color:#fff;font-weight:800;font-size:1rem;display:grid;place-items:center}
+  .mini-stepper span{min-width:14px;text-align:center;font-weight:700;font-size:.88rem}
+
+  .empty-search{text-align:center;color:var(--muted);padding:50px 0;display:none}
+
+  /* --- Panel cart (desktop) --- */
+  .cart-panel{display:none}
+
+  /* ============ FLOATING CART BAR (mobile) ============ */
+  .cart-bar{
+    position:fixed;left:0;right:0;bottom:0;z-index:60;
+    padding:12px clamp(14px,4vw,24px) calc(12px + var(--safe-b));
+    background:linear-gradient(0deg,var(--cream) 70%,transparent);
+    pointer-events:none;display:none;
+  }
+  .cart-bar.show{display:block}
+  .cart-bar-inner{
+    pointer-events:auto;max-width:680px;margin:0 auto;
+    background:var(--terra);color:#fff;border-radius:16px;
+    box-shadow:0 12px 30px rgba(138,79,59,.4);
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    padding:14px 18px;
+  }
+  .cart-bar .info{display:flex;align-items:center;gap:12px}
+  .cart-bar .count{
+    background:#fff;color:var(--terra);font-weight:800;
+    min-width:30px;height:30px;border-radius:9px;display:grid;place-items:center;font-size:.9rem;
+  }
+  .cart-bar .lbl{font-size:.78rem;opacity:.85;line-height:1.1}
+  .cart-bar .lbl b{display:block;font-size:1.02rem;font-weight:700;opacity:1}
+  .cart-bar .view{font-weight:700;display:flex;align-items:center;gap:6px}
+
+  /* ============ DRAWER / BOTTOM SHEET ============ */
+  .overlay{
+    position:fixed;inset:0;background:rgba(30,25,18,.45);z-index:70;
+    opacity:0;visibility:hidden;transition:.25s;
+  }
+  .overlay.open{opacity:1;visibility:visible}
+  .drawer{
+    position:fixed;left:0;right:0;bottom:0;z-index:80;
+    background:var(--cream-2);
+    border-radius:24px 24px 0 0;
+    box-shadow:0 -10px 40px rgba(0,0,0,.18);
+    transform:translateY(100%);transition:transform .32s cubic-bezier(.22,.61,.36,1);
+    max-height:88vh;display:flex;flex-direction:column;
+    padding-bottom:var(--safe-b);
+  }
+  .drawer.open{transform:translateY(0)}
+  .grabber{width:42px;height:5px;border-radius:5px;background:#d8d2c6;margin:10px auto 0}
+  .drawer-head{display:flex;align-items:center;justify-content:space-between;padding:14px 22px 6px}
+  .drawer-head h3{font-size:1.3rem;font-weight:700}
+  .drawer-body{overflow-y:auto;padding:8px 18px 18px}
+
+  /* ============ ITEM KERANJANG ============ */
+  .cart-list{display:flex;flex-direction:column;gap:12px}
+  .citem{
+    background:#fff;border-radius:14px;padding:12px;
+    display:flex;align-items:center;gap:12px;box-shadow:var(--shadow-sm);
+  }
+  .citem .ci-img{
+    width:46px;height:46px;border-radius:10px;flex:none;
+    display:grid;place-items:center;font-size:1.3rem;background:linear-gradient(135deg,#e9ddca,#cdbfa6);
+  }
+  .citem .ci-mid{flex:1;min-width:0}
+  .citem .ci-mid h5{font-size:.9rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .citem .ci-mid .p{color:var(--green-soft);font-weight:700;font-size:.82rem;margin-top:2px}
+  .stepper{display:flex;align-items:center;gap:8px;background:#f1ece3;border-radius:10px;padding:4px 6px}
+  .stepper button{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;color:var(--green-text);font-size:1rem;font-weight:700;background:#fff}
+  .stepper button:hover{background:#e6dfd2}
+  .stepper .q{font-size:.85rem;font-weight:700;min-width:14px;text-align:center}
+  .cart-empty{text-align:center;color:var(--muted);padding:34px 10px;font-size:.92rem}
+
+  .summary{background:#fff;border-radius:16px;padding:18px;margin-top:16px;box-shadow:var(--shadow-sm)}
+  .sline{display:flex;justify-content:space-between;font-size:.9rem;color:var(--muted);margin-bottom:8px}
+  .sline.total{color:var(--ink);font-weight:700;font-size:1.05rem;border-top:1px solid var(--line);padding-top:12px;margin-top:6px;margin-bottom:0}
+  .sline.total .v{color:var(--green-soft);font-size:1.4rem;font-weight:800}
+  .checkout,.place-btn{
+    width:100%;margin-top:16px;background:var(--terra);color:#fff;
+    padding:15px;border-radius:14px;font-weight:700;font-size:1rem;transition:.18s;
+    display:flex;align-items:center;justify-content:center;gap:8px;
+  }
+  .checkout:hover,.place-btn:hover{background:var(--terra-2)}
+  .checkout:disabled,.place-btn:disabled{opacity:.5;cursor:not-allowed}
+  .back-link{
+    display:inline-flex;align-items:center;gap:6px;color:var(--green-soft);
+    font-weight:600;font-size:.85rem;margin-bottom:14px;cursor:pointer;
+  }
+
+  /* ============ CHECKOUT FORM ============ */
+  .field-label{
+    font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;
+    color:var(--muted);margin:16px 0 6px;
+  }
+  input.form-input{
+    width:100%;font-family:var(--font);font-size:.92rem;color:var(--ink);
+    background:#efeae1;border:1px solid var(--line);border-radius:12px;
+    padding:11px 14px;outline:none;
+  }
+  input.form-input:focus{background:#fff;border-color:var(--sage)}
+  input.form-input:disabled{opacity:.7;font-weight:700;cursor:not-allowed}
+  .metode-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:4px}
+  .metode-opt{
+    background:#fff;border:1px solid var(--line);padding:12px 6px;text-align:center;
+    border-radius:12px;cursor:pointer;transition:.15s;box-shadow:var(--shadow-sm);
+  }
+  .metode-opt.sel{border-color:var(--sage-deep);background:rgba(138,168,136,.15);box-shadow:inset 0 0 0 1.5px var(--sage-deep)}
+  .metode-opt .ic{font-size:18px;display:block;margin-bottom:4px}
+  .metode-opt .lb{font-size:.72rem;font-weight:700;color:var(--muted)}
+  .metode-opt.sel .lb{color:var(--ink)}
+
+  /* ============ SUKSES ============ */
+  .confirm{text-align:center;padding:6px 4px 4px}
+  .stamp-badge{
+    width:78px;height:78px;border-radius:50%;border:3px solid var(--sage-deep);
+    display:flex;align-items:center;justify-content:center;margin:6px auto 14px;
+    animation:pop .5s cubic-bezier(.3,1.5,.4,1);
+  }
+  @keyframes pop{from{transform:scale(0);}to{transform:scale(1);}}
+  .stamp-badge svg{width:36px;height:36px;color:var(--sage-deep)}
+  .confirm h3{font-size:1.2rem;font-weight:800;margin:0 0 6px;color:var(--green-text)}
+  .confirm p{font-size:.85rem;color:var(--muted);margin:0 0 16px;line-height:1.6}
+  .order-no{
+    font-family:monospace;font-weight:700;font-size:.95rem;
+    background:#efeae1;border:1px dashed var(--line);border-radius:10px;
+    padding:9px 14px;display:inline-block;letter-spacing:.08em;margin-bottom:14px;
+  }
+  .recap{text-align:left;background:#efeae1;padding:12px;border-radius:12px;margin-bottom:6px}
+  .recap-label{font-size:.68rem;color:var(--muted);text-transform:uppercase;font-weight:700;margin-bottom:6px}
+
+  /* ============ TOAST ============ */
+  #toast-wrap{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:8px;align-items:center;width:92%;max-width:380px}
+  .toast{background:var(--ink);color:#fff;padding:12px 18px;border-radius:12px;font-size:.85rem;display:flex;align-items:center;gap:10px;box-shadow:0 10px 30px rgba(0,0,0,.3);animation:toastIn .3s cubic-bezier(0.2,0.9,0.3,1.2);width:100%}
+  .toast.error{background:var(--danger)}
+  @keyframes toastIn{from{opacity:0;transform:translateY(-15px) scale(.9);}to{opacity:1;transform:translateY(0) scale(1);}}
+  .spin{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  /* ============ RESPONSIVE ============ */
+  @media (min-width:560px){
+    .grid{grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
+  }
+  @media (max-width:1023px){
+    .search-toggle{display:grid}
+    .search{
+      position:absolute;top:var(--header-h);left:0;right:0;
+      max-width:none;margin:0;border-radius:0;border:none;border-bottom:1px solid var(--line);
+      background:var(--cream-2);padding:12px clamp(14px,4vw,24px);
+      display:none;z-index:45;
+    }
+    .search.show{display:flex}
+  }
+  @media (min-width:1024px){
+    .layout{grid-template-columns:262px minmax(0,1fr) 372px;gap:8px}
+    .sidebar{
+      display:block;position:sticky;top:calc(var(--header-h) + 49px);
+      align-self:start;height:calc(100vh - var(--header-h) - 49px);
+      overflow-y:auto;padding:34px 22px;border-right:1px solid var(--line);
+    }
+    .cart-panel{
+      display:block;position:sticky;top:calc(var(--header-h) + 49px);
+      align-self:start;height:calc(100vh - var(--header-h) - 49px);
+      overflow-y:auto;padding:30px 24px;border-left:1px solid var(--line);
+      background:var(--cream-2);
+    }
+    .cart-bar,.drawer,.overlay,.chipbar{display:none !important}
+    .search{display:flex !important;position:static}
+    .search-toggle{display:none !important}
+    .content{padding-bottom:60px}
+  }
+  @media (min-width:1280px){
+    .grid{grid-template-columns:repeat(auto-fill,minmax(250px,1fr))}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none !important;scroll-behavior:auto}}
+</style>
+</head>
+<body>
+
+<!-- ============ SCREEN: PILIH KAFE ============ -->
+<div id="screen-pilih-kafe">
+  <div class="pk-wrap">
+    <div class="pk-badge">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9h13a3 3 0 0 1 0 6h-1"/><path d="M4 9v6a4 4 0 0 0 4 4h4a4 4 0 0 0 4-4V9"/><path d="M7 5c.3 1-.4 1.4-.2 2.3M11 5c.3 1-.4 1.4-.2 2.3M15 5c.3 1-.4 1.4-.2 2.3"/></svg>
+    </div>
+    <div class="pk-title">Pilih Kafe</div>
+    <div class="pk-sub">Temukan kafe terdekat untuk mulai memesan</div>
+    <div class="pk-search">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <input type="text" id="searchInputKafe" placeholder="Cari nama kafe..." oninput="renderDaftarKafe()">
+    </div>
+    <div class="pk-list" id="daftarKafe"></div>
+  </div>
+</div>
+
+<!-- ============ APP SHELL ============ -->
+<div id="app-shell">
+
+  <header class="header">
+    <div class="logo"><b id="ui-cafe-name">Kafe</b><small>Self order · scan &amp; sruput</small></div>
+
+    <label class="search" id="searchBox">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <input type="search" id="searchInput" placeholder="Cari menu..." aria-label="Cari menu" />
+    </label>
+
+    <div class="head-actions">
+      <button class="icon-btn search-toggle" id="searchToggle" aria-label="Buka pencarian">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      </button>
+      <button class="icon-btn" aria-label="Keranjang" id="cartIconBtn">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+        <span class="badge" id="headBadge" style="display:none">0</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="infobar">
+    <div class="table-chip" id="ui-table-badge"><span class="dot"></span> <span id="ui-table-text">Meja --</span></div>
+    <button class="ganti-btn" onclick="kembaliPilihKafe()">Ganti Kafe</button>
+  </div>
+
+  <nav class="chipbar" id="chipbar" aria-label="Kategori"></nav>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="side-head">
+        <h1>Menu</h1>
+        <p>Crafted with care</p>
+      </div>
+      <nav class="nav" id="sideNav" aria-label="Kategori"></nav>
+      <div class="promo">
+        <h4>☕ Member Reward</h4>
+        <p>Kumpulkan poin tiap pemesanan &amp; tukar dengan minuman gratis.</p>
+      </div>
+    </aside>
+
+    <main class="content" id="content">
+      <div class="empty-search" id="emptySearch">Tidak ada menu yang cocok 🔍</div>
+    </main>
+
+    <aside class="cart-panel">
+      <div class="cp-head" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+        <h3 style="font-size:1.5rem;font-weight:700">Your Order</h3>
+        <span class="badge" id="panelBadge" style="position:static;display:none">0</span>
+      </div>
+      <div id="cartAreaDesktop"></div>
+    </aside>
+  </div>
+
+  <div class="cart-bar" id="cartBar">
+    <button class="cart-bar-inner" id="openDrawer" style="width:100%">
+      <span class="info">
+        <span class="count" id="barCount">0</span>
+        <span class="lbl">Lihat keranjang<b id="barTotal">Rp 0</b></span>
+      </span>
+      <span class="view">View Cart
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m9 18 6-6-6-6"/></svg>
+      </span>
+    </button>
+  </div>
+
+  <div class="overlay" id="overlay"></div>
+  <aside class="drawer" id="drawer" aria-label="Keranjang belanja">
+    <div class="grabber"></div>
+    <div class="drawer-head">
+      <h3>Your Order</h3>
+      <button class="icon-btn" id="closeDrawer" aria-label="Tutup">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="drawer-body">
+      <div id="cartAreaMobile"></div>
+    </div>
+  </aside>
+
+</div>
+
+<div id="toast-wrap"></div>
+
+<script>
+// ==========================================
+// 1. KONFIGURASI FIREBASE
+// ==========================================
+const firebaseConfig = {
+  apiKey: "AIzaSyD8-Ps6ompRiQ7ITKE9nYvOxzR77aL120U",
+  authDomain: "kasir-abc5f.firebaseapp.com",
+  databaseURL: "https://kasir-abc5f-default-rtdb.asia-southeast1.firebasedatabase.app/",
+  projectId: "kasir-abc5f",
+  storageBucket: "kasir-abc5f.firebasestorage.app",
+  messagingSenderId: "442202046937",
+  appId: "1:442202046937:web:f55a5871ac7cfbb91159c8"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// ==========================================
+// 2. STATE & URL PARAMETERS (QR Logic)
+// ==========================================
+const urlParams = new URLSearchParams(window.location.search);
+const qrMeja = urlParams.get('meja');
+const qrKafe = urlParams.get('cafe') || urlParams.get('kafe'); // 'cafe' = ID custom baru, 'kafe' tetap didukung utk QR lama
+
+let allServers = {};
+let currentServerId = null;
+let currentServerData = null;
+
+let MASTER_MENU = {};
+let stokFIFO = {};
+let stokMode = 'fifo';
+let kategoriUnik = [];
+
+let cart = {};              // { menu_id: qty }
+let cartMode = 'cart';      // 'cart' | 'checkout' | 'success'
+let metodeBayar = 'QRIS';
+let lastOrder = null, lastOrderKey = null;
+let _menuListeners = [];
+
+const ICONS = {
+  cup:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 8h1a3 3 0 0 1 0 6h-1"/><path d="M3 8h14v6a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/><path d="M6 2v2M10 2v2M14 2v2"/></svg>',
+  glass:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 3h14l-1.5 9a4 4 0 0 1-4 3.5h-3A4 4 0 0 1 6.5 12Z"/><path d="M12 15.5V22M8 22h8"/></svg>',
+  fork:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 3v6a2 2 0 0 0 2 2h0a2 2 0 0 0 2-2V3M6 11v10"/><path d="M16 3c-1.5 0-2.5 2-2.5 5s1 4 2.5 4 2.5-1 2.5-4-1-5-2.5-5Zm0 9v9"/></svg>',
+  cookie:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10 4 4 0 0 1-5-5 4 4 0 0 1-5-5Z"/><circle cx="9" cy="11" r="1"/><circle cx="14" cy="15" r="1"/><circle cx="15" cy="9" r="1"/></svg>',
+};
+
+// ==========================================
+// 3. UTILITIES
+// ==========================================
+const fRp = n => "Rp" + (n||0).toLocaleString("id-ID");
+const escapeHtml = t => (t||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const sref = path => db.ref(`servers/${currentServerId}/${path}`);
+const defaultIcon = '☕';
+const slug = s => (s||'lainnya').toString().toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'') || 'lainnya';
+
+function iconFor(cat){
+  const n = (cat||'').toLowerCase();
+  if(n.includes('non') || n.includes('juice') || n.includes('jus') || n.includes('minum') || n.includes('drink')) return ICONS.glass;
+  if(n.includes('makan') || n.includes('main') || n.includes('food') || n.includes('berat')) return ICONS.fork;
+  if(n.includes('snack') || n.includes('cemilan') || n.includes('roti') || n.includes('kue')) return ICONS.cookie;
+  return ICONS.cup;
+}
+
+function totalStok(id){
+  if(!stokFIFO[id]) return 0;
+  return Object.values(stokFIFO[id]).reduce((a,b) => a + b.qty, 0);
+}
+
+function showToast(msg, type='info'){
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.innerHTML = `<span>${type==='error'?'⚠️':'✅'}</span><span>${escapeHtml(msg)}</span>`;
+  document.getElementById('toast-wrap').appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
+// ==========================================
+// 4. SCREEN SWITCHING
+// ==========================================
+function showPilihKafeScreen(){
+  document.getElementById('screen-pilih-kafe').classList.remove('hide');
+  document.getElementById('app-shell').classList.remove('show');
+}
+function showAppScreen(){
+  document.getElementById('screen-pilih-kafe').classList.add('hide');
+  document.getElementById('app-shell').classList.add('show');
+}
+
+// ==========================================
+// 5. SCREEN: PILIH KAFE
+// ==========================================
+db.ref('servers').on('value', snap => {
+  allServers = snap.val() || {};
+  if (qrKafe && allServers[qrKafe] && !currentServerId) {
+    pilihKafe(qrKafe);
+  } else if (!currentServerId) {
+    renderDaftarKafe();
+  }
+});
+
+function renderDaftarKafe(){
+  const q = (document.getElementById('searchInputKafe').value || '').toLowerCase();
+  const list = document.getElementById('daftarKafe');
+  const entries = Object.entries(allServers).filter(([,v]) => !q || (v.name||'').toLowerCase().includes(q));
+
+  if(!entries.length){
+    list.innerHTML = `<div class="pk-empty">${q ? 'Kafe tidak ditemukan.' : 'Belum ada kafe terdaftar.'}</div>`;
+    return;
+  }
+
+  list.innerHTML = entries.map(([id, v]) => `
+    <div class="pk-card" onclick="pilihKafe('${id}')">
+      <div class="pk-icon">${v.icon || defaultIcon}</div>
+      <div style="flex:1">
+        <div class="pk-name">${escapeHtml(v.name)}</div>
+        <div class="pk-desc">${escapeHtml(v.desc || 'Ketuk untuk memesan')}</div>
+      </div>
+      <div class="pk-arrow">→</div>
+    </div>`).join('');
+}
+
+function pilihKafe(id){
+  currentServerId = id;
+  currentServerData = allServers[id];
+  cart = {};
+  cartMode = 'cart';
+  document.getElementById('searchInput').value = '';
+
+  document.getElementById('ui-cafe-name').textContent = currentServerData.name;
+
+  const tableBadge = document.getElementById('ui-table-badge');
+  const tableText = document.getElementById('ui-table-text');
+  if(qrMeja){
+    tableText.textContent = `Meja ${qrMeja}`;
+    tableBadge.classList.remove('no-table');
+  } else {
+    tableText.textContent = 'Pilih meja saat checkout';
+    tableBadge.classList.add('no-table');
+  }
+
+  showAppScreen();
+  attachMenuListeners();
+  updateCartUI();
+  renderCartArea();
+}
+
+function kembaliPilihKafe(){
+  detachMenuListeners();
+  currentServerId = null;
+  currentServerData = null;
+  cart = {};
+  MASTER_MENU = {};
+  stokFIFO = {};
+  showPilihKafeScreen();
+  renderDaftarKafe();
+}
+
+// ==========================================
+// 6. LOAD MASTER MENU & STOK
+// ==========================================
+function attachMenuListeners(){
+  detachMenuListeners();
+  _menuListeners.push(sref('master_menu').on('value', snap => {
+    MASTER_MENU = snap.val() || {};
+    renderMenuSections();
+  }));
+  _menuListeners.push(sref('stok_fifo').on('value', snap => {
+    stokFIFO = snap.val() || {};
+    renderMenuSections();
+  }));
+  _menuListeners.push(sref('settings/stok_mode').on('value', snap => {
+    stokMode = snap.val() || 'fifo';
+  }));
+}
+
+function detachMenuListeners(){
+  if(currentServerId){
+    sref('master_menu').off('value');
+    sref('stok_fifo').off('value');
+    sref('settings/stok_mode').off('value');
+  }
+  _menuListeners = [];
+}
+
+// ==========================================
+// 7. RENDER MENU (sections + sidebar + chips)
+// ==========================================
+function renderMenuSections(){
+  const content = document.getElementById('content');
+  const cats = {};
+  Object.keys(MASTER_MENU).forEach(id => {
+    const m = MASTER_MENU[id];
+    const cat = m.kategori || m.cat || 'Menu';
+    if(!cats[cat]) cats[cat] = [];
+    cats[cat].push(id);
+  });
+  kategoriUnik = Object.keys(cats);
+
+  content.innerHTML = `<div class="empty-search" id="emptySearch">Tidak ada menu yang cocok 🔍</div>`;
+
+  if(kategoriUnik.length === 0){
+    content.innerHTML += `<div class="empty-search" style="display:block">Belum ada menu tersedia.</div>`;
+  }
+
+  kategoriUnik.forEach(cat => {
+    const ids = cats[cat];
+    const sec = document.createElement('section');
+    sec.className = 'section';
+    sec.id = 'sec-' + slug(cat);
+    sec.innerHTML = `
+      <h2>${escapeHtml(cat)}</h2>
+      <p class="sub">${ids.length} menu tersedia</p>
+      <div class="grid">${ids.map(id => cardHTML(id)).join('')}</div>`;
+    content.appendChild(sec);
+  });
+
+  renderNav();
+  applySearchFilter();
+  observeSections();
+}
+
+function cardHTML(id){
+  const m = MASTER_MENU[id];
+  const stok = totalStok(id);
+  const qty = cart[id] || 0;
+  const tagHTML = stok === 0 ? `<span class="tag habis">Habis</span>` : (stok <= 5 ? `<span class="tag low">Sisa ${stok}</span>` : '');
+  const stokClass = stok === 0 ? 'habis' : (stok <= 5 ? 'low' : '');
+  const stokTxt = stok === 0 ? 'Stok habis' : `Sisa stok: ${stok}`;
+
+  let ctrlHTML = '';
+  if(stok === 0){
+    ctrlHTML = `<button class="add" disabled aria-label="Habis">✕</button>`;
+  } else if(qty === 0){
+    ctrlHTML = `<button class="add" onclick="tambahQty('${id}')" aria-label="Tambah ${escapeHtml(m.n)}">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg>
+    </button>`;
+  } else {
+    ctrlHTML = `<div class="mini-stepper">
+      <button onclick="kurangQty('${id}')" aria-label="Kurang">−</button>
+      <span>${qty}</span>
+      <button onclick="tambahQty('${id}')" aria-label="Tambah">+</button>
+    </div>`;
+  }
+
+  return `
+    <article class="card ${stok===0?'out':''}" data-id="${id}" data-name="${escapeHtml((m.n||'').toLowerCase())}">
+      <div class="thumb">
+        ${m.icon || '🍽️'}
+        ${tagHTML}
+      </div>
+      <div class="card-body">
+        <div class="row1"><h3>${escapeHtml(m.n)}</h3></div>
+        <div class="stok-txt ${stokClass}">${stokTxt}</div>
+        <div class="row2">
+          <span class="price">${fRp(m.h)}</span>
+          ${ctrlHTML}
+        </div>
+      </div>
+    </article>`;
+}
+
+function renderNav(){
+  const sideNav = document.getElementById('sideNav');
+  const chipbar = document.getElementById('chipbar');
+  sideNav.innerHTML = '';
+  chipbar.innerHTML = '';
+  kategoriUnik.forEach((cat, i) => {
+    const id = slug(cat);
+    sideNav.insertAdjacentHTML('beforeend',
+      `<a data-cat="${id}" class="${i===0?'active':''}" onclick="jumpToCat('${id}')">${iconFor(cat)}${escapeHtml(cat)}</a>`);
+    chipbar.insertAdjacentHTML('beforeend',
+      `<button class="chip ${i===0?'active':''}" data-cat="${id}" onclick="jumpToCat('${id}')">${iconFor(cat)}${escapeHtml(cat)}</button>`);
+  });
+}
+
+function jumpToCat(id){
+  const el = document.getElementById('sec-' + id);
+  if(el) el.scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+let _observer = null;
+function observeSections(){
+  if(_observer) _observer.disconnect();
+  _observer = new IntersectionObserver(es => {
+    es.forEach(en => {
+      if(en.isIntersecting){
+        const id = en.target.id.replace('sec-','');
+        document.querySelectorAll('[data-cat]').forEach(l => l.classList.toggle('active', l.dataset.cat === id));
+      }
+    });
+  }, {rootMargin:'-45% 0px -50% 0px'});
+  document.querySelectorAll('.section').forEach(s => _observer.observe(s));
+}
+
+// ==========================================
+// 8. SEARCH
+// ==========================================
+function applySearchFilter(){
+  const q = (document.getElementById('searchInput').value || '').trim().toLowerCase();
+  let any = false;
+  document.querySelectorAll('.section').forEach(sec => {
+    let visible = 0;
+    sec.querySelectorAll('.card').forEach(card => {
+      const match = card.dataset.name.includes(q);
+      card.style.display = match ? '' : 'none';
+      if(match) visible++;
+    });
+    sec.style.display = visible ? '' : 'none';
+    if(visible) any = true;
+  });
+  document.getElementById('emptySearch').style.display = any ? 'none' : 'block';
+}
+document.getElementById('searchInput').addEventListener('input', applySearchFilter);
+
+// ==========================================
+// 9. CART LOGIC
+// ==========================================
+function tambahQty(id){
+  const stok = totalStok(id);
+  const curQty = cart[id] || 0;
+  if(curQty >= stok){
+    showToast(`Stok ${MASTER_MENU[id].n} tidak mencukupi!`, 'error');
+    return;
+  }
+  cart[id] = curQty + 1;
+  renderMenuSections();
+  updateCartUI();
+  if(cartMode !== 'success') renderCartArea();
+}
+
+function kurangQty(id){
+  if(!cart[id]) return;
+  cart[id] -= 1;
+  if(cart[id] <= 0) delete cart[id];
+  renderMenuSections();
+  updateCartUI();
+  if(Object.keys(cart).length === 0 && cartMode === 'checkout') cartMode = 'cart';
+  if(cartMode !== 'success') renderCartArea();
+}
+
+function cartTotal(){
+  return Object.entries(cart).reduce((sum, [id, qty]) => sum + (MASTER_MENU[id].h * qty), 0);
+}
+function cartCount(){
+  return Object.values(cart).reduce((a,b) => a+b, 0);
+}
+
+function updateCartUI(){
+  const count = cartCount();
+  const total = cartTotal();
+  ['headBadge','panelBadge'].forEach(id => {
+    const el = document.getElementById(id);
+    el.textContent = count;
+    el.style.display = count ? 'grid' : 'none';
+  });
+  document.getElementById('barCount').textContent = count;
+  document.getElementById('barTotal').textContent = fRp(total);
+  document.getElementById('cartBar').classList.toggle('show', count > 0);
+}
+
+// ==========================================
+// 10. RENDER CART AREA (cart / checkout / success)
+// ==========================================
+function renderCartArea(){
+  let html;
+  if(cartMode === 'checkout') html = checkoutView();
+  else if(cartMode === 'success') html = successView();
+  else html = cartView();
+
+  document.getElementById('cartAreaDesktop').innerHTML = html;
+  document.getElementById('cartAreaMobile').innerHTML = html;
+}
+
+function itemHTML(id, qty){
+  const m = MASTER_MENU[id];
+  return `<div class="citem">
+    <div class="ci-img">${m.icon || '🍽️'}</div>
+    <div class="ci-mid"><h5>${escapeHtml(m.n)}</h5><div class="p">${fRp(m.h)} × ${qty}</div></div>
+    <div class="stepper">
+      <button onclick="kurangQty('${id}')" aria-label="Kurang">−</button>
+      <span class="q">${qty}</span>
+      <button onclick="tambahQty('${id}')" aria-label="Tambah">+</button>
+    </div>
+  </div>`;
+}
+
+function cartView(){
+  const entries = Object.entries(cart);
+  if(!entries.length){
+    return `<div class="cart-empty">Keranjang masih kosong 🛒<br>Tambahkan menu favoritmu!</div>`;
+  }
+  const list = entries.map(([id,q]) => itemHTML(id,q)).join('');
+  const total = cartTotal();
+  return `
+    <div class="cart-list">${list}</div>
+    <div class="summary">
+      <div class="sline"><span>Total Item</span><span>${cartCount()}</span></div>
+      <div class="sline total"><span>Total</span><span class="v">${fRp(total)}</span></div>
+      <button class="checkout" onclick="openCheckout()">Checkout Now</button>
+    </div>`;
+}
+
+function openCheckout(){
+  if(cartCount() === 0) return;
+  cartMode = 'checkout';
+  renderCartArea();
+  if(window.innerWidth < 1024) openD();
+}
+
+function backToCart(){
+  cartMode = 'cart';
+  renderCartArea();
+}
+
+function setMetode(m){
+  metodeBayar = m;
+  renderCartArea();
+}
+
+function checkoutView(){
+  const entries = Object.entries(cart);
+  const rows = entries.map(([id,qty]) => {
+    const m = MASTER_MENU[id];
+    return `<div class="citem">
+      <div class="ci-img">${m.icon || '🍽️'}</div>
+      <div class="ci-mid"><h5>${escapeHtml(m.n)}</h5><div class="p">${fRp(m.h)} × ${qty}</div></div>
+    </div>`;
+  }).join('');
+
+  const mejaInputHTML = qrMeja
+    ? `<input type="text" class="form-input" id="inputMeja" value="${escapeHtml(qrMeja)}" disabled>`
+    : `<input type="text" class="form-input" id="inputMeja" placeholder="Contoh: 04" required autocomplete="off">`;
+
+  const metodes = [
+    {id:'QRIS', ic:'📱', lb:'QRIS'},
+    {id:'Kartu Debit', ic:'💳', lb:'Debit'},
+    {id:'Tunai', ic:'💵', lb:'Tunai'}
+  ];
+  const metodeHTML = metodes.map(m => `
+    <div class="metode-opt ${metodeBayar===m.id?'sel':''}" onclick="setMetode('${m.id}')">
+      <span class="ic">${m.ic}</span><span class="lb">${m.lb}</span>
+    </div>`).join('');
+
+  return `
+    <div class="back-link" onclick="backToCart()">← Kembali ke keranjang</div>
+    <div class="cart-list">${rows}</div>
+    <div class="field-label">Nomor Meja</div>
+    ${mejaInputHTML}
+    <div class="field-label">Pilih Metode Pembayaran</div>
+    <div class="metode-grid">${metodeHTML}</div>
+    <div class="summary" style="padding:16px 0 0;box-shadow:none;background:transparent">
+      <div class="sline total"><span>Total Bayar</span><span class="v">${fRp(cartTotal())}</span></div>
+      <button class="place-btn" id="btnProsesBayar" onclick="prosesPesanan()">Pesan &amp; Bayar</button>
+    </div>`;
+}
+
+// ==========================================
+// 11. PROSES PESANAN (Firebase order & stok)
+// ==========================================
+async function prosesPesanan(){
+  const mejaInput = document.getElementById('inputMeja');
+  const mejaVal = mejaInput ? mejaInput.value.trim() : null;
+
+  if(!mejaVal){
+    showToast('Tolong isi nomor meja terlebih dahulu!', 'error');
+    if(mejaInput) mejaInput.focus();
+    return;
+  }
+
+  const btn = document.getElementById('btnProsesBayar');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin"></span> Memproses...';
+
+  try{
+    const snap = await sref('stok_fifo').once('value');
+    const currentStok = snap.val() || {};
+
+    for(const [id, qty] of Object.entries(cart)){
+      let ketersediaan = 0;
+      if(currentStok[id]) Object.values(currentStok[id]).forEach(b => ketersediaan += b.qty);
+      if(ketersediaan < qty) throw new Error(`Stok "${MASTER_MENU[id].n}" tidak cukup! Tersisa ${ketersediaan}`);
+    }
+
+    for(const [id, qty] of Object.entries(cart)){
+      if(stokMode === 'atomic') await deductAtomicC(id, qty);
+      else await deductFIFOC(id, qty);
+    }
+
+    const itemsArray = Object.entries(cart).map(([id, qty]) => ({
+      id, n: MASTER_MENU[id].n, h: MASTER_MENU[id].h, qty
+    }));
+
+    const orderPayload = {
+      meja: mejaVal,
+      items: itemsArray,
+      status: 'masak',
+      ts: Date.now(),
+      total: cartTotal(),
+      source: 'online',
+      sudah_bayar: true,
+      metode_bayar: metodeBayar
+    };
+
+    const ref = await sref('orders').push(orderPayload);
+
+    lastOrder = orderPayload;
+    lastOrderKey = ref.key;
+    cartMode = 'success';
+    renderCartArea();
+
+    cart = {};
+    updateCartUI();
+    renderMenuSections();
+
+  }catch(e){
+    showToast(e.message || 'Gagal memproses pesanan', 'error');
+    btn.disabled = false;
+    btn.innerHTML = 'Pesan &amp; Bayar';
+  }
+}
+
+async function deductFIFOC(itemId, jumlah){
+  const ref = sref(`stok_fifo/${itemId}`);
+  const snap = await ref.once('value');
+  const batches = [];
+  snap.forEach(c => batches.push({key:c.key, ...c.val()}));
+  batches.sort((a,b) => a.ts - b.ts);
+
+  let needed = jumlah;
+  const updates = {};
+  for(const b of batches){
+    if(needed <= 0) break;
+    if(b.qty <= needed){ updates[b.key] = null; needed -= b.qty; }
+    else { updates[b.key] = {qty: b.qty - needed, ts: b.ts}; needed = 0; }
+  }
+  if(needed > 0) throw new Error('Kesalahan sinkronisasi stok');
+  await ref.update(updates);
+}
+
+function deductAtomicC(itemId, jumlah){
+  const ref = sref(`stok_fifo/${itemId}`);
+  return new Promise((resolve, reject) => {
+    ref.transaction(current => {
+      if(!current) return;
+      const total = Object.values(current).reduce((a,b) => a + (b.qty||0), 0);
+      if(total < jumlah){ reject(new Error('Stok tidak cukup')); return undefined; }
+
+      const sorted = Object.entries(current).map(([k,v]) => ({k,...v})).sort((a,b) => a.ts - b.ts);
+      let needed = jumlah;
+      for(const b of sorted){
+        if(needed <= 0) break;
+        if((b.qty||0) <= needed){ current[b.k] = null; needed -= b.qty; }
+        else { current[b.k] = {qty: b.qty - needed, ts: b.ts}; needed = 0; }
+      }
+      return current;
+    }, (err, committed) => {
+      if(err) reject(err);
+      else if(!committed) reject(new Error('Transaksi digagalkan oleh server'));
+      else resolve();
+    }, false);
+  });
+}
+
+// ==========================================
+// 12. STRUK SUKSES
+// ==========================================
+function successView(){
+  if(!lastOrder) return cartView();
+  const rows = lastOrder.items.map(i => `
+    <div class="citem">
+      <div class="ci-img">${(MASTER_MENU[i.id] && MASTER_MENU[i.id].icon) || '🍽️'}</div>
+      <div class="ci-mid"><h5>${escapeHtml(i.n)}</h5><div class="p">${fRp(i.h)} × ${i.qty}</div></div>
+      <div style="font-weight:700;color:var(--green-soft);font-size:.85rem">${fRp(i.h*i.qty)}</div>
+    </div>`).join('');
+
+  return `
+    <div class="confirm">
+      <div class="stamp-badge">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+      </div>
+      <h3>Pesanan Berhasil!</h3>
+      <p>Pesanan untuk <b>Meja No. ${escapeHtml(lastOrder.meja)}</b> sudah diteruskan ke dapur <b>${escapeHtml(currentServerData.name)}</b>.<br>Total <b>${fRp(lastOrder.total)}</b> (${lastOrder.metode_bayar})</p>
+      <div class="recap">
+        <div class="recap-label">Rincian</div>
+        <div class="cart-list">${rows}</div>
+      </div>
+      <div class="order-no">#${lastOrderKey.slice(-6).toUpperCase()}</div>
+      <button class="checkout" onclick="selesaiPesanLagi()">Tutup &amp; Pesan Lagi</button>
+    </div>`;
+}
+
+function selesaiPesanLagi(){
+  cartMode = 'cart';
+  lastOrder = null; lastOrderKey = null;
+  renderCartArea();
+  if(window.innerWidth < 1024) closeD();
+}
+
+// ==========================================
+// 13. DRAWER (mobile) & SEARCH TOGGLE
+// ==========================================
+const drawer = document.getElementById('drawer'), overlay = document.getElementById('overlay');
+const openD = () => { drawer.classList.add('open'); overlay.classList.add('open'); document.body.style.overflow='hidden'; };
+const closeD = () => { drawer.classList.remove('open'); overlay.classList.remove('open'); document.body.style.overflow=''; };
+document.getElementById('openDrawer').addEventListener('click', openD);
+document.getElementById('cartIconBtn').addEventListener('click', () => { if(window.innerWidth < 1024) openD(); });
+document.getElementById('closeDrawer').addEventListener('click', closeD);
+overlay.addEventListener('click', closeD);
+
+const searchBox = document.getElementById('searchBox');
+document.getElementById('searchToggle').addEventListener('click', () => {
+  searchBox.classList.toggle('show');
+  if(searchBox.classList.contains('show')) searchBox.querySelector('input').focus();
+});
+
+// ==========================================
+// 14. INIT
+// ==========================================
+showPilihKafeScreen();
+renderDaftarKafe();
+updateCartUI();
+</script>
+</body>
+</html>
