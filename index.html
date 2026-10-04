@@ -12,6 +12,7 @@
 
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
 
   <style>
     :root{
@@ -421,6 +422,94 @@
     @media (prefers-reduced-motion:reduce){
       *{animation:none!important;transition:none!important;scroll-behavior:auto!important}
     }
+  
+    /* ===== Customer account + order tracking ===== */
+    .account-top-btn{
+      display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 11px;
+      border:1px solid var(--line);border-radius:999px;background:var(--surface-card);
+      color:var(--ink);font-size:10px;font-weight:800;cursor:pointer;box-shadow:var(--shadow-sm);
+      white-space:nowrap;
+    }
+    .account-top-btn:hover{border-color:rgba(140,58,39,.25);transform:translateY(-1px)}
+    .account-top-btn .material-symbols-outlined{font-size:17px;color:var(--primary)}
+    .account-top-avatar{width:21px;height:21px;border-radius:50%;object-fit:cover;display:none}
+    .account-top-btn.signed .account-top-avatar{display:block}
+    .account-top-btn.signed .account-icon{display:none}
+    .account-top-btn.signed #accountTopText{max-width:92px;overflow:hidden;text-overflow:ellipsis}
+
+    .account-sheet{width:min(680px,calc(100vw - 24px));max-height:min(88vh,760px);overflow:auto;
+      background:var(--surface-card);border:1px solid var(--line);border-radius:24px;
+      box-shadow:var(--shadow-lg);padding:20px;
+    }
+    .account-user-box{display:flex;align-items:center;gap:12px;padding:13px 14px;background:var(--surface-soft);
+      border:1px solid var(--line);border-radius:16px;margin-bottom:14px}
+    .account-avatar{width:44px;height:44px;border-radius:50%;object-fit:cover;background:#fff;border:1px solid var(--line);display:grid;place-items:center}
+    .account-avatar img{width:100%;height:100%;border-radius:50%;object-fit:cover}
+    .account-user-copy{min-width:0;flex:1}
+    .account-user-copy strong{display:block;font-size:12px}
+    .account-user-copy span{display:block;font-size:10px;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .account-logout{border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 10px;font-size:9px;font-weight:800;cursor:pointer}
+    .account-section{margin-top:14px}
+    .account-section-title{font-size:10px;text-transform:uppercase;letter-spacing:.12em;color:var(--brass);font-weight:800;margin-bottom:9px}
+    .google-btn{width:100%;height:44px;border:1px solid var(--line);background:#fff;border-radius:12px;cursor:pointer;
+      display:flex;align-items:center;justify-content:center;gap:9px;font-size:11px;font-weight:800;color:var(--ink);box-shadow:var(--shadow-sm)}
+    .google-btn:hover{border-color:rgba(140,58,39,.28);background:var(--surface-muted)}
+    .google-mark{width:19px;height:19px;border-radius:50%;display:grid;place-items:center;font-weight:900;font-size:12px}
+    .account-divider{display:flex;align-items:center;gap:8px;margin:14px 0;color:var(--muted);font-size:8px;text-transform:uppercase;letter-spacing:.1em}
+    .account-divider::before,.account-divider::after{content:"";height:1px;background:var(--line);flex:1}
+    .track-panel{border:1px solid var(--line);border-radius:16px;padding:14px;background:linear-gradient(180deg,#fff,var(--surface-muted))}
+    .track-row{display:grid;grid-template-columns:1fr .65fr auto;gap:8px}
+    .track-input{height:42px;border:1px solid var(--line);border-radius:10px;background:#fff;padding:0 11px;font-size:11px;color:var(--ink);outline:none}
+    .track-input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(140,58,39,.08)}
+    .track-btn{height:42px;border:none;border-radius:10px;padding:0 13px;background:var(--primary);color:#fff;
+      font-size:10px;font-weight:800;cursor:pointer;white-space:nowrap}
+    .track-btn:disabled{opacity:.6;cursor:wait}
+    .track-help{font-size:9px;color:var(--ink-2);margin:8px 0 0;line-height:1.5}
+    .track-result{margin-top:12px}
+    .track-result-card{border:1px solid var(--line);border-radius:14px;padding:13px;background:#fff}
+    .track-result-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+    .track-result-code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;font-weight:900;letter-spacing:.06em}
+    .track-status-pill{font-size:8px;font-weight:900;padding:5px 8px;border-radius:999px;background:var(--forest-soft);color:var(--forest)}
+    .track-mini-copy{font-size:9px;color:var(--ink-2);line-height:1.55}
+    .track-save-btn{width:100%;margin-top:10px;height:36px;border:1px solid var(--line);border-radius:10px;background:var(--surface-soft);
+      color:var(--ink);font-size:9px;font-weight:800;cursor:pointer}
+    .track-login-hint{padding:10px 11px;border-radius:10px;background:var(--surface-soft);font-size:9px;color:var(--ink-2);line-height:1.5}
+    .history-wrap{margin-top:16px}
+    .history-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .history-head h4{margin:0;font-size:12px}
+    .history-refresh{border:1px solid var(--line);background:#fff;border-radius:9px;padding:7px 9px;font-size:8px;font-weight:800;cursor:pointer}
+    .history-list{display:grid;gap:8px;margin-top:9px}
+    .history-empty{padding:15px;border:1px dashed var(--line);border-radius:12px;text-align:center;color:var(--muted);font-size:9px;line-height:1.5}
+    .history-item{border:1px solid var(--line);border-radius:13px;padding:11px;background:#fff;display:grid;grid-template-columns:1fr auto;gap:9px;align-items:center}
+    .history-main{min-width:0}
+    .history-top{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+    .history-code{font-family:ui-monospace,monospace;font-size:9px;font-weight:900}
+    .history-status{font-size:7px;font-weight:900;padding:4px 7px;border-radius:999px;background:var(--surface-soft);color:var(--ink-2)}
+    .history-meta{font-size:8px;color:var(--ink-2);margin-top:4px;line-height:1.5}
+    .history-total{font-size:10px;font-weight:900;margin-top:3px}
+    .history-track{border:1px solid var(--line);border-radius:9px;background:var(--surface-soft);padding:8px 9px;font-size:8px;font-weight:900;cursor:pointer;white-space:nowrap}
+    .success-tracking{margin:12px 0;padding:13px;border:1px solid rgba(38,68,54,.16);border-radius:14px;background:var(--forest-soft);text-align:left}
+    .success-tracking-title{font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.11em;color:var(--forest)}
+    .success-credentials{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+    .credential-box{padding:9px 10px;background:#fff;border:1px solid rgba(38,68,54,.12);border-radius:10px}
+    .credential-box small{display:block;font-size:7px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em}
+    .credential-box strong{display:block;margin-top:2px;font-family:ui-monospace,monospace;font-size:12px;letter-spacing:.08em}
+    .success-tracking-copy{font-size:8px;color:var(--ink-2);line-height:1.5;margin:8px 0 0}
+    .account-guest-badge{display:inline-flex;align-items:center;gap:5px;padding:5px 8px;border-radius:999px;background:var(--surface-soft);
+      font-size:7px;font-weight:800;color:var(--ink-2)}
+    @media(max-width:899px){
+      .account-top-btn{width:34px;padding:0;justify-content:center}
+      .account-top-btn #accountTopText{display:none}
+      .track-row{grid-template-columns:1fr 1fr}
+      .track-btn{grid-column:1 / -1}
+      .account-sheet{padding:16px;border-radius:20px}
+    }
+    @media(max-width:480px){
+      .success-credentials{grid-template-columns:1fr}
+      .history-item{grid-template-columns:1fr}
+      .history-track{width:100%}
+    }
+
   </style>
 </head>
 
@@ -473,6 +562,11 @@
             <span class="count-badge" id="headBadge">0</span>
           </button>
           <span class="cart-total-top" id="topCartTotal">Rp 0</span>
+          <button class="account-top-btn" id="accountTopBtn" type="button" onclick="openAccountModal()" aria-label="Akun pelanggan">
+            <span class="material-symbols-outlined account-icon">person</span>
+            <img class="account-top-avatar" id="accountTopAvatar" alt="" />
+            <span id="accountTopText">Masuk</span>
+          </button>
         </div>
       </div>
     </header>
@@ -636,6 +730,51 @@
       </div>
     </div>
 
+
+    <!-- Customer Account + Order Tracking -->
+    <div class="modal" id="account-modal" role="dialog" aria-modal="true" aria-labelledby="account-title">
+      <div class="account-sheet">
+        <div class="modal-head">
+          <div>
+            <div class="modal-kicker">Customer Atelier</div>
+            <h3 id="account-title">Akun &amp; Pesanan</h3>
+          </div>
+          <button class="close-round" type="button" onclick="closeAccountModal()" aria-label="Tutup"><span class="material-symbols-outlined">close</span></button>
+        </div>
+
+        <div id="account-user-area"></div>
+
+        <section class="account-section" id="account-login-section">
+          <div class="account-section-title">Simpan history lintas perangkat</div>
+          <button class="google-btn" type="button" onclick="signInGoogle()">
+            <span class="google-mark">G</span> Masuk dengan Google
+          </button>
+          <div class="account-divider">atau lanjut tanpa login</div>
+        </section>
+
+        <section class="account-section">
+          <div class="account-section-title">Lacak pesanan dengan kode + PIN</div>
+          <div class="track-panel">
+            <div class="track-row">
+              <input class="track-input" id="track-code-input" type="text" inputmode="text" autocomplete="off" placeholder="Kode, contoh RK-A7Q2M9" maxlength="12" />
+              <input class="track-input" id="track-pin-input" type="password" inputmode="numeric" autocomplete="off" placeholder="PIN 4 digit" maxlength="4" />
+              <button class="track-btn" id="track-order-btn" type="button" onclick="trackGuestOrder()">Lacak Pesanan</button>
+            </div>
+            <p class="track-help">Kode + PIN muncul setelah checkout. Keduanya bisa dipakai tanpa membuat akun.</p>
+            <div class="track-result" id="track-result"></div>
+          </div>
+        </section>
+
+        <section class="history-wrap" id="customer-history-wrap">
+          <div class="history-head">
+            <h4>Riwayat Pesanan</h4>
+            <button class="history-refresh" type="button" id="history-refresh-btn" onclick="loadCustomerHistory()">Refresh</button>
+          </div>
+          <div class="history-list" id="customer-history-list"></div>
+        </section>
+      </div>
+    </div>
+
     <div id="toast-wrap"></div>
   </div>
 
@@ -652,6 +791,9 @@
 
   firebase.initializeApp(firebaseConfig);
   const db = firebase.database();
+  const auth = firebase.auth();
+  const googleProvider = new firebase.auth.GoogleAuthProvider();
+  googleProvider.setCustomParameters({prompt:'select_account'});
 
   const urlParams = new URLSearchParams(window.location.search);
   const qrMeja = urlParams.get('meja');
@@ -682,6 +824,11 @@
   let activeCategory = 'all';
   let tasteFilter = '';
   let currentCustomItem = null;
+  let currentCustomer = null;
+  let customerHistory = [];
+  let lastGuestTracking = null;
+  let trackedOrderSnapshot = null;
+  let _trackedOrderServerId = null;
 
   const DESIGN_IMAGES = {"Aceh Gayo Peach & Jasmin": "https://lh3.googleusercontent.com/aida-public/AB6AXuDpBlkytk0HApEtjZKBy5JserzgJaQn-L-aJ19KXvxQEO81xAPZRzImIGfdUBk03IFzFbyNmPVRyfuDEnTAzSejc4VgqIGbSukpIxk33JdhFVUzqftw1-BKcg75thztl-Opa2iVFQLqi8HnFoPfbdyo_aaBCAYj9hhUNXvF0RypoVigqZMb4_4453uuIIcBlgcShxho-fuukKx9gN6y8MkhyV61aQQH0XIRV7WLxz9mM5BhD3CTwL2u", "Toraja Sapan Minanga": "https://lh3.googleusercontent.com/aida-public/AB6AXuDqoaJlF1xVED4yRcopdQrKbNj5rts7xeiI3LPgSxH-oww3zWWI4jEfc-ca33I0PGC-B_CLgfzKxOv6csmeJSXK08hQLiBN8DQHYVnOAWOJ2LzaYYsXcR8pJMPvg2Mqq08W9DowSCkFdKVUBlA4dbsrUDcqHDl5wKyZDvMyw_prcDAgLV_Mw0qojznL9CA61Hl1cazfRhgstLuKVzXjBGKNYNL89O0Z0YYm0diy5QGXJcLBlgNLhyvN", "Aren Velvet Latte": "https://lh3.googleusercontent.com/aida-public/AB6AXuDzFr0Y-uI5MWegotmc9Ejz0vJatWyMpe_VkS4xrHPfsSS7Hqtko04GmywhgwbZ5oyZAPJCNEmL2WUyLC_P_0lDhC2vMi45uj2h7Ot7f-hHxtjB_pOJNcEeya9pPSZXp5JaNy_YfUSqwdOomzLu-mEyXT0fFxY6tYRF0S0IlStIlPuD7sYLpUqBahyGjCsU0cXDOQiHCL9FTwSum-l4n1KNjbLb-7BHfaaDSy7ILGil6cdVIVSjlFMX", "Cascara Pandan Cold Foam": "https://lh3.googleusercontent.com/aida-public/AB6AXuAwAEG3vMcD-48ZFNUhtk3PFmZEPH0GQJuhf5Hxm0t_CsSvtKLrnoMNkNpUdvTDxLkI2vp9IgFE0aVN26VJMeoCNVcdTM_mpBd0xmZ-JcTAhy4TWaxKlZvEEg2446QFZ8K5dEuPnWt08esaQ48l-D-UciNjXjiPSm-zI0uPYFU63PxvkdluwVGgugXXX1Jl2-_u69ib2iUu7WvIJDlrC81ToXif8iOqrNW2DmxeBiJZv6xxcL_NqRTQ", "Bika Ambon Crème Brûlée Tart": "https://lh3.googleusercontent.com/aida-public/AB6AXuCoFMoa1fMWtyNAw3_GuedJVLemXSWe07ugWWLT-eQ0HCOqLiWVud9hEa0p_dnHW4NJ2QzqkeU937NkwXc0TG8yrppaedXymai1qncs0Wx8kJgBlyPOtHJRuju2XkEZML8_5Krk5rJsuBTz_YaKvZLYjfcN8jFjuju7YBH2rZF_OyRtx3rC89ShwErMj7EzK2DSM2X8it2se3jQxmi_4Kw3WkCik0IWBLZBbCnP67fGfL9TamsdtcHw", "Croissant Serabi Pandan": "https://lh3.googleusercontent.com/aida-public/AB6AXuCzhIx3fz8FZy-RHy6-FzZ2RN98fVWYWSuG79fIyD-rUkxt5X_H4-v5Izhmdd_HhnfdUi7Hfe4xH4eWLYqq_LhSrIXnkLx_80arr2D6xPhosD_KEAV5EDXcSk_d0O9cS_OTCQAqatndUnqd9XuFDK6qzwHCzg0wRo5yA9J2wiDqcDn7SbewQ2upQkorA6r0PbmCSU60HNvbM1bjki2KMg5m73eztfdjw-YkDBm-R5DOkaz09BiXesi4", "Singkong Sambal Roa Crisp": "https://lh3.googleusercontent.com/aida-public/AB6AXuBtaBTK3L5MAKngg0lcvL68RX-TDzi10tNNdwQ1Pt7pew7-qsLZysb3et43WeUzvcTOV_wwzhzRvGQ2cTuIUN2UMIYNJkJzaZsQrCZWGATF6uLjEiqpXDBtmfJ0X9ubwpLtpS_PbC7cTk0jBT89ay9fiGnfYcRfhWFQXCHX2ubCLK76IZaavUsZduSLZH1sZZ0J32eAxzCToedDzewTzqJ3-2WbI6JBr208LF5PkxLBN0lk8Jqct-C0", "Lapis Legit Spiced Opera": "https://lh3.googleusercontent.com/aida-public/AB6AXuBexH5qWZHr4hg90Ec6mdlCUnr9pGYMwrixhPNeLdym6rtl5klu56T_fVMp-5IGycz1dX8MBj7vfcLzUoTklqmnzRUWnukzL0FdmnQ-bZQ6dAcGJ3a78h1jwUd0DEEQN73pntUxVojCULGmwdMhomJXb79AWOtLlaQOVfAt_z4Elcy2cSBHltXNezjsgPjP3mrI1tumnDob1YjX--kMR8pkc8e_e8qARhrYpBcQnnRoJZPb-r6COjis"};
   const DESIGN_META = {
@@ -749,6 +896,355 @@
 
   // keep compatibility with the earlier toast helper
   function showToast(msg,type='info'){ notify(msg,type==='error'?'error':'success'); }
+
+
+  // =========================
+  // CUSTOMER ACCOUNT / TRACKING
+  // =========================
+  const statusLabelForKey = key => {
+    const s = ORDER_STAGES.find(x => x.key === key);
+    return s ? s.label : (key || 'Menunggu');
+  };
+
+  function makeTrackingCredentials(){
+    const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let code='RK-';
+    const arr=new Uint32Array(6);
+    crypto.getRandomValues(arr);
+    for(let i=0;i<arr.length;i++) code += chars[arr[i] % chars.length];
+
+    const pinArr=new Uint32Array(1);
+    crypto.getRandomValues(pinArr);
+    const pin=String(pinArr[0] % 10000).padStart(4,'0');
+    return {code,pin};
+  }
+
+  function saveGuestTrackingLocal(tracking){
+    try{
+      localStorage.setItem('ruangKalaLastTracking',JSON.stringify({
+        code:tracking.code,pin:tracking.pin,serverId:tracking.serverId,orderKey:tracking.orderKey,ts:Date.now()
+      }));
+    }catch(e){}
+  }
+
+  function restoreGuestTrackingLocal(){
+    try{
+      const raw=localStorage.getItem('ruangKalaLastTracking');
+      if(!raw) return;
+      const data=JSON.parse(raw);
+      if(data?.code && data?.pin){
+        lastGuestTracking=data;
+      }
+    }catch(e){}
+  }
+
+  function updateAccountButton(){
+    const btn=document.getElementById('accountTopBtn');
+    const text=document.getElementById('accountTopText');
+    const avatar=document.getElementById('accountTopAvatar');
+    if(!btn || !text || !avatar) return;
+    if(currentCustomer){
+      btn.classList.add('signed');
+      text.textContent=currentCustomer.displayName?.split(' ')[0] || 'Akun';
+      if(currentCustomer.photoURL) avatar.src=currentCustomer.photoURL;
+      else avatar.removeAttribute('src');
+      btn.title=currentCustomer.email || 'Akun Google';
+    }else{
+      btn.classList.remove('signed');
+      text.textContent='Masuk';
+      avatar.removeAttribute('src');
+      btn.title='Masuk / lacak pesanan';
+    }
+  }
+
+  function openAccountModal(mode='account'){
+    const modal=document.getElementById('account-modal');
+    if(!modal) return;
+    modal.classList.add('show');
+    document.body.style.overflow='hidden';
+    renderAccountState();
+    if(mode==='track' && lastGuestTracking){
+      document.getElementById('track-code-input').value=lastGuestTracking.code||'';
+      document.getElementById('track-pin-input').value=lastGuestTracking.pin||'';
+      trackGuestOrder(true);
+    }
+  }
+
+  function closeAccountModal(){
+    document.getElementById('account-modal')?.classList.remove('show');
+    if(!document.getElementById('customize-modal').classList.contains('show') &&
+       !document.getElementById('info-modal').classList.contains('show')){
+      document.body.style.overflow='';
+    }
+  }
+
+  async function signInGoogle(){
+    try{
+      const result=await auth.signInWithPopup(googleProvider);
+      const u=result.user;
+      notify(`Selamat datang, ${u.displayName?.split(' ')[0]||'pelanggan'}!`);
+      renderAccountState();
+      await loadCustomerHistory();
+    }catch(e){
+      console.error('Google sign-in error:',e);
+      if(e?.code==='auth/popup-blocked'){
+        notify('Popup Google diblokir browser. Izinkan popup lalu coba lagi.','error');
+      }else if(e?.code==='auth/popup-closed-by-user'){
+        notify('Login dibatalkan.','error');
+      }else if(e?.code==='auth/unauthorized-domain'){
+        notify('Domain website ini belum diizinkan di Firebase Authentication.','error');
+      }else{
+        notify(e?.message || 'Login Google gagal.','error');
+      }
+    }
+  }
+
+  async function signOutCustomer(){
+    try{
+      await auth.signOut();
+      customerHistory=[];
+      notify('Kamu sudah keluar dari akun.');
+      renderAccountState();
+    }catch(e){
+      notify('Gagal keluar dari akun.','error');
+    }
+  }
+
+  function renderAccountState(){
+    const userArea=document.getElementById('account-user-area');
+    const loginSection=document.getElementById('account-login-section');
+    const historyList=document.getElementById('customer-history-list');
+    if(!userArea || !loginSection || !historyList) return;
+
+    if(currentCustomer){
+      const photo=currentCustomer.photoURL
+        ? `<img src="${escapeHtml(currentCustomer.photoURL)}" alt="">`
+        : `<span class="material-symbols-outlined" style="color:var(--primary)">person</span>`;
+      userArea.innerHTML=`
+        <div class="account-user-box">
+          <div class="account-avatar">${photo}</div>
+          <div class="account-user-copy">
+            <strong>${escapeHtml(currentCustomer.displayName||'Pelanggan')}</strong>
+            <span>${escapeHtml(currentCustomer.email||'Akun Google')}</span>
+          </div>
+          <button class="account-logout" type="button" onclick="signOutCustomer()">Keluar</button>
+        </div>`;
+      loginSection.style.display='none';
+    }else{
+      userArea.innerHTML=`
+        <div class="track-login-hint"><b>Mode tamu aktif.</b> Kamu tetap bisa melacak pesanan memakai kode + PIN tanpa login.</div>`;
+      loginSection.style.display='';
+    }
+
+    if(currentCustomer && !customerHistory.length){
+      historyList.innerHTML=`<div class="history-empty">Belum ada pesanan yang tersimpan di akun ini.</div>`;
+    }else if(!currentCustomer){
+      historyList.innerHTML=`<div class="history-empty">Masuk dengan Google agar history pesanan tersimpan lintas perangkat.</div>`;
+    }
+  }
+
+  async function loadCustomerHistory(){
+    if(!currentCustomer){
+      renderAccountState();
+      return;
+    }
+    const list=document.getElementById('customer-history-list');
+    if(list) list.innerHTML='<div class="history-empty">Memuat riwayat pesanan...</div>';
+
+    try{
+      const snap=await db.ref(`users/${currentCustomer.uid}/orders`)
+        .orderByChild('ts').limitToLast(30).once('value');
+
+      const refs=[];
+      snap.forEach(child=>refs.push({key:child.key,...(child.val()||{})}));
+      refs.sort((a,b)=>(Number(b.ts)||0)-(Number(a.ts)||0));
+
+      const enriched=await Promise.all(refs.map(async r=>{
+        if(!r.serverId || !r.orderKey) return r;
+        try{
+          const os=await db.ref(`servers/${r.serverId}/orders/${r.orderKey}`).once('value');
+          return {...r,...(os.val()||{}),serverId:r.serverId,orderKey:r.orderKey};
+        }catch(e){
+          return r;
+        }
+      }));
+
+      customerHistory=enriched;
+      renderCustomerHistory();
+    }catch(e){
+      console.error('History load error:',e);
+      if(list) list.innerHTML='<div class="history-empty">History belum bisa dimuat. Periksa koneksi atau aturan Firebase.</div>';
+    }
+  }
+
+  function renderCustomerHistory(){
+    const list=document.getElementById('customer-history-list');
+    if(!list) return;
+    if(!currentCustomer){
+      list.innerHTML='<div class="history-empty">Masuk dengan Google agar history pesanan tersimpan lintas perangkat.</div>';
+      return;
+    }
+    if(!customerHistory.length){
+      list.innerHTML='<div class="history-empty">Belum ada pesanan yang tersimpan di akun ini.</div>';
+      return;
+    }
+
+    list.innerHTML=customerHistory.map(o=>{
+      const dt=o.ts ? new Date(Number(o.ts)).toLocaleString('id-ID',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '-';
+      const itemCount=(o.items||[]).reduce((sum,i)=>sum+(Number(i.qty)||0),0);
+      const code=o.tracking_code || `#${String(o.orderKey||'').slice(-6).toUpperCase()}`;
+      const pin=o.tracking_pin || '';
+      return `
+        <div class="history-item">
+          <div class="history-main">
+            <div class="history-top">
+              <span class="history-code">${escapeHtml(code)}</span>
+              <span class="history-status">${escapeHtml(statusLabelForKey(o.status))}</span>
+            </div>
+            <div class="history-meta">${escapeHtml(dt)} • Meja ${escapeHtml(o.meja||'--')} • ${itemCount} item${itemCount===1?'':'s'}</div>
+            <div class="history-total">${fRp(o.total||0)}</div>
+          </div>
+          ${o.tracking_code && pin ? `<button class="history-track" type="button" onclick='trackHistoryOrder(${JSON.stringify(o.tracking_code)},${JSON.stringify(pin)},${JSON.stringify(o.serverId||currentServerId)})'>Lacak</button>` : ''}
+        </div>`;
+    }).join('');
+  }
+
+  async function trackHistoryOrder(code,pin,serverId){
+    document.getElementById('track-code-input').value=code||'';
+    document.getElementById('track-pin-input').value=pin||'';
+    if(serverId && serverId!==currentServerId){
+      notify('Pesanan ini berasal dari kafe lain. Buka kafe tersebut untuk live tracking.','error');
+      return;
+    }
+    await trackGuestOrder(true);
+  }
+
+  async function trackGuestOrder(silent=false){
+    const code=(document.getElementById('track-code-input')?.value||'').trim().toUpperCase();
+    const pin=(document.getElementById('track-pin-input')?.value||'').replace(/\D/g,'').slice(0,4);
+    const result=document.getElementById('track-result');
+    const btn=document.getElementById('track-order-btn');
+
+    if(!code || !pin){
+      if(!silent) notify('Masukkan kode pesanan dan PIN.','error');
+      return;
+    }
+    if(!currentServerId){
+      if(!silent) notify('Pilih kafe terlebih dahulu.','error');
+      return;
+    }
+
+    if(btn){btn.disabled=true;btn.textContent='Mencari...';}
+    if(result && !silent) result.innerHTML='<div class="history-empty">Mencari pesanan...</div>';
+
+    try{
+      const snap=await sref('orders').orderByChild('tracking_code').equalTo(code).once('value');
+      let found=null;
+      snap.forEach(child=>{
+        const d=child.val()||{};
+        if(String(d.tracking_pin||'')===pin) found={key:child.key,data:d};
+      });
+
+      if(!found) throw new Error('Pesanan tidak ditemukan. Pastikan kode dan PIN benar.');
+
+      lastOrder=found.data;
+      lastOrderKey=found.key;
+      liveOrderStatus=found.data.status || 'masak';
+      trackedOrderSnapshot={key:found.key,data:found.data};
+      _trackedOrderServerId=currentServerId;
+
+      lastGuestTracking={code,pin,serverId:currentServerId,orderKey:found.key};
+      saveGuestTrackingLocal(lastGuestTracking);
+      watchOrderStatus(found.key);
+      renderTrackResult();
+
+      if(!silent) notify('Pesanan ditemukan.');
+    }catch(e){
+      if(result) result.innerHTML=`<div class="history-empty">${escapeHtml(e.message||'Pesanan tidak ditemukan.')}</div>`;
+      if(!silent) notify(e.message||'Pesanan tidak ditemukan.','error');
+    }finally{
+      if(btn){btn.disabled=false;btn.textContent='Lacak Pesanan';}
+    }
+  }
+
+  function renderTrackResult(){
+    const result=document.getElementById('track-result');
+    if(!result || !trackedOrderSnapshot) return;
+    const d=trackedOrderSnapshot.data||{};
+    const items=(d.items||[]).reduce((sum,i)=>sum+(Number(i.qty)||0),0);
+    const rows=(d.items||[]).slice(0,5).map(i=>`<div class="track-mini-copy">• ${i.qty}× ${escapeHtml(i.n)}</div>`).join('');
+    const sameUser=currentCustomer && d.customer_uid===currentCustomer.uid;
+    result.innerHTML=`
+      <div class="track-result-card">
+        <div class="track-result-head">
+          <span class="track-result-code">${escapeHtml(d.tracking_code||'Pesanan')}</span>
+          <span class="track-status-pill">${escapeHtml(statusLabelForKey(liveOrderStatus||d.status))}</span>
+        </div>
+        <div class="track-mini-copy">Meja ${escapeHtml(d.meja||'--')} • ${items} item • ${fRp(d.total||0)}</div>
+        <div style="margin-top:7px">${rows}</div>
+        ${orderTimelineHtml()}
+        ${currentCustomer && !sameUser ? `<button class="track-save-btn" type="button" onclick="saveTrackedOrderToAccount()">Simpan pesanan ini ke history akun</button>` : ''}
+        ${!currentCustomer ? `<div class="track-login-hint" style="margin-top:10px">Login Google agar pesanan ini bisa disimpan ke history akunmu dan diakses di perangkat lain.</div>` : ''}
+      </div>`;
+  }
+
+  async function saveTrackedOrderToAccount(){
+    if(!currentCustomer || !trackedOrderSnapshot || !_trackedOrderServerId){
+      notify('Login Google terlebih dahulu.','error'); return;
+    }
+    const d=trackedOrderSnapshot.data||{};
+    const indexPayload={
+      serverId:_trackedOrderServerId,
+      orderKey:trackedOrderSnapshot.key,
+      tracking_code:d.tracking_code||'',
+      tracking_pin:d.tracking_pin||'',
+      cafeName:currentServerData?.name||'Kafe',
+      meja:d.meja||'--',
+      ts:Number(d.ts)||Date.now(),
+      total:Number(d.total)||0
+    };
+    try{
+      await db.ref(`users/${currentCustomer.uid}/orders/${trackedOrderSnapshot.key}`).set(indexPayload);
+      await sref(`orders/${trackedOrderSnapshot.key}`).update({
+        customer_uid:currentCustomer.uid,
+        customer_email:currentCustomer.email||'',
+        customer_name:currentCustomer.displayName||''
+      });
+      notify('Pesanan berhasil disimpan ke history akun.');
+      await loadCustomerHistory();
+      renderTrackResult();
+    }catch(e){
+      notify('Gagal menyimpan pesanan ke akun.','error');
+    }
+  }
+
+  async function saveOrderToCustomerHistory(orderKey, orderData){
+    if(!currentCustomer || !currentServerId) return;
+    try{
+      await db.ref(`users/${currentCustomer.uid}/orders/${orderKey}`).set({
+        serverId:currentServerId,
+        orderKey,
+        tracking_code:orderData.tracking_code||'',
+        tracking_pin:orderData.tracking_pin||'',
+        cafeName:currentServerData?.name||'Kafe',
+        meja:orderData.meja||'--',
+        ts:Number(orderData.ts)||Date.now(),
+        total:Number(orderData.total)||0
+      });
+    }catch(e){
+      console.warn('Tidak dapat menyimpan index history:',e);
+      notify('Pesanan tetap masuk, tetapi history akun gagal disinkronkan.','error');
+    }
+  }
+
+  function updateTrackedOrderFromData(data){
+    if(!trackedOrderSnapshot || !data) return;
+    trackedOrderSnapshot.data=data;
+    if(document.getElementById('track-result')) renderTrackResult();
+    if(currentCustomer) renderCustomerHistory();
+  }
+
+  restoreGuestTrackingLocal();
 
   function showPilihKafeScreen(){
     document.getElementById('screen-pilih-kafe').classList.remove('hide');
@@ -1004,7 +1500,7 @@
       document.getElementById('searchInput').focus();
       document.getElementById('searchInput').select();
     }
-    if(e.key==='Escape'){ closeCustomizer(); closeInfo(); }
+    if(e.key==='Escape'){ closeCustomizer(); closeInfo(); closeAccountModal(); }
   });
 
   // CART
@@ -1160,7 +1656,13 @@
     _orderStatusListener = sref(`orders/${orderKey}`).on('value', snap => {
       const data = snap.val();
       liveOrderStatus = data ? data.status : null;
+      if(data && trackedOrderSnapshot && _watchedOrderKey===trackedOrderSnapshot.key){
+        updateTrackedOrderFromData(data);
+      }
       if(cartMode==='success') renderCartArea();
+      if(currentCustomer && document.getElementById('account-modal')?.classList.contains('show')){
+        loadCustomerHistory();
+      }
     });
   }
 
@@ -1205,6 +1707,16 @@
         <h3>Pesanan Berhasil!</h3>
         <p>Pesanan untuk <b>Meja No. ${escapeHtml(lastOrder.meja)}</b> sudah diteruskan ke dapur <b>${escapeHtml(currentServerData?.name||'Kafe')}</b>.<br>Total <b>${fRp(lastOrder.total)}</b> (${escapeHtml(lastOrder.metode_bayar)}).</p>
         <div class="order-no">#${escapeHtml((lastOrderKey||'').slice(-6).toUpperCase())}</div>
+        ${lastOrder.tracking_code ? `
+          <div class="success-tracking">
+            <div class="success-tracking-title">Lacak pesanan tanpa login</div>
+            <div class="success-credentials">
+              <div class="credential-box"><small>Kode pesanan</small><strong>${escapeHtml(lastOrder.tracking_code)}</strong></div>
+              <div class="credential-box"><small>PIN</small><strong>${escapeHtml(lastOrder.tracking_pin||'----')}</strong></div>
+            </div>
+            <p class="success-tracking-copy">${currentCustomer ? 'History juga tersimpan di akun Google kamu.' : 'Simpan kode + PIN ini untuk melacak pesanan dari menu Akun.'}</p>
+            <button class="track-save-btn" type="button" onclick="openAccountModal('track')">Buka pelacakan &amp; history</button>
+          </div>` : ''}
         ${orderTimelineHtml()}
         <div class="cart-list" style="text-align:left">${rows}</div>
         <button class="place-btn" type="button" onclick="selesaiPesanLagi()">Tutup &amp; Pesan Lagi</button>
@@ -1348,6 +1860,8 @@
       });
 
       const bill=fees();
+      const tracking=makeTrackingCredentials();
+      const customer=auth.currentUser;
       const orderPayload={
         meja:mejaVal,
         items:itemsArray,
@@ -1360,11 +1874,22 @@
         sudah_bayar:true,
         metode_bayar:metodeBayar,
         split_bill:splitBill,
-        catatan:kitchenNote
+        catatan:kitchenNote,
+        tracking_code:tracking.code,
+        tracking_pin:tracking.pin,
+        customer_uid:customer?.uid||null,
+        customer_email:customer?.email||null,
+        customer_name:customer?.displayName||null
       };
 
       const ref=await sref('orders').push(orderPayload);
+      orderPayload.tracking_code=tracking.code;
+      orderPayload.tracking_pin=tracking.pin;
+      orderPayload.customer_uid=customer?.uid||null;
       lastOrder=orderPayload; lastOrderKey=ref.key;
+      lastGuestTracking={code:tracking.code,pin:tracking.pin,serverId:currentServerId,orderKey:ref.key};
+      saveGuestTrackingLocal(lastGuestTracking);
+      await saveOrderToCustomerHistory(ref.key,orderPayload);
       watchOrderStatus(ref.key);
 
       cartMode='success';
@@ -1474,11 +1999,36 @@
 
   document.getElementById('customize-modal').addEventListener('click',e=>{if(e.target.id==='customize-modal')closeCustomizer();});
   document.getElementById('info-modal').addEventListener('click',e=>{if(e.target.id==='info-modal')closeInfo();});
+  document.getElementById('account-modal').addEventListener('click',e=>{if(e.target.id==='account-modal')closeAccountModal();});
+
+  document.getElementById('track-code-input').addEventListener('input',e=>{
+    e.target.value=e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g,'').slice(0,12);
+  });
+  document.getElementById('track-pin-input').addEventListener('input',e=>{
+    e.target.value=e.target.value.replace(/\D/g,'').slice(0,4);
+  });
+  document.getElementById('track-pin-input').addEventListener('keydown',e=>{
+    if(e.key==='Enter') trackGuestOrder();
+  });
+
+  auth.onAuthStateChanged(async user=>{
+    currentCustomer=user||null;
+    updateAccountButton();
+    renderAccountState();
+    if(user){
+      await loadCustomerHistory();
+      if(trackedOrderSnapshot) renderTrackResult();
+    }else{
+      customerHistory=[];
+      renderCustomerHistory();
+    }
+  });
 
   // initialise
   showPilihKafeScreen();
   renderDaftarKafe();
   updateCartUI();
+  updateAccountButton();
   updateCurrentTime();
   setInterval(updateCurrentTime,30000);
 </script>
