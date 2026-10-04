@@ -423,6 +423,37 @@
       *{animation:none!important;transition:none!important;scroll-behavior:auto!important}
     }
   
+
+    .logout-confirm-sheet{
+      width:min(420px,calc(100vw - 28px));background:var(--surface-card);
+      border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow-lg);
+      padding:22px;text-align:left;
+    }
+    .logout-confirm-icon{
+      width:46px;height:46px;border-radius:14px;background:var(--surface-soft);
+      display:grid;place-items:center;color:var(--primary);margin-bottom:12px;
+    }
+    .logout-confirm-icon .material-symbols-outlined{font-size:24px}
+    .logout-confirm-title{font-family:var(--font-serif);font-size:23px;color:var(--ink);margin-bottom:6px}
+    .logout-confirm-copy{font-size:10px;line-height:1.6;color:var(--ink-2);margin:0 0 16px}
+    .logout-confirm-user{
+      display:flex;align-items:center;gap:10px;padding:10px 11px;border:1px solid var(--line);
+      background:var(--surface-muted);border-radius:12px;margin-bottom:16px;
+    }
+    .logout-confirm-user-avatar{width:32px;height:32px;border-radius:50%;overflow:hidden;background:#fff;display:grid;place-items:center;border:1px solid var(--line)}
+    .logout-confirm-user-avatar img{width:100%;height:100%;object-fit:cover}
+    .logout-confirm-user-copy{min-width:0}
+    .logout-confirm-user-copy strong{display:block;font-size:10px}
+    .logout-confirm-user-copy span{display:block;font-size:8px;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .logout-confirm-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .logout-cancel,.logout-yes{
+      height:42px;border-radius:11px;font-size:10px;font-weight:800;cursor:pointer;
+    }
+    .logout-cancel{border:1px solid var(--line);background:#fff;color:var(--ink)}
+    .logout-yes{border:0;background:var(--primary);color:#fff;box-shadow:0 8px 18px rgba(140,58,39,.2)}
+    .logout-cancel:hover{background:var(--surface-muted)}
+    .logout-yes:hover{background:var(--primary-dark)}
+
     /* ===== Customer account + order tracking ===== */
     .account-top-btn{
       display:inline-flex;align-items:center;gap:7px;height:34px;padding:0 11px;
@@ -731,6 +762,21 @@
     </div>
 
 
+
+    <!-- Logout confirmation -->
+    <div class="modal" id="logout-confirm-modal" role="dialog" aria-modal="true" aria-labelledby="logout-confirm-title">
+      <div class="logout-confirm-sheet">
+        <div class="logout-confirm-icon"><span class="material-symbols-outlined">logout</span></div>
+        <div class="logout-confirm-title" id="logout-confirm-title">Keluar dari akun?</div>
+        <p class="logout-confirm-copy">Riwayat pesanan kamu tetap aman tersimpan di akun. Kamu hanya akan keluar dari sesi Google di perangkat ini.</p>
+        <div class="logout-confirm-user" id="logout-confirm-user"></div>
+        <div class="logout-confirm-actions">
+          <button class="logout-cancel" type="button" onclick="closeLogoutConfirm()">Batal</button>
+          <button class="logout-yes" type="button" onclick="confirmLogout()">Ya, Keluar</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Customer Account + Order Tracking -->
     <div class="modal" id="account-modal" role="dialog" aria-modal="true" aria-labelledby="account-title">
       <div class="account-sheet">
@@ -999,13 +1045,45 @@
     }
   }
 
-  async function signOutCustomer(){
+  function openLogoutConfirm(){
+    const modal=document.getElementById('logout-confirm-modal');
+    const box=document.getElementById('logout-confirm-user');
+    if(!modal || !box) return;
+    const u=currentCustomer;
+    const photo=u?.photoURL
+      ? `<img src="${escapeHtml(u.photoURL)}" alt="">`
+      : `<span class="material-symbols-outlined" style="font-size:18px;color:var(--primary)">person</span>`;
+    box.innerHTML=`
+      <div class="logout-confirm-user-avatar">${photo}</div>
+      <div class="logout-confirm-user-copy">
+        <strong>${escapeHtml(u?.displayName||'Akun Google')}</strong>
+        <span>${escapeHtml(u?.email||'')}</span>
+      </div>`;
+    modal.classList.add('show');
+    document.body.style.overflow='hidden';
+  }
+
+  function closeLogoutConfirm(){
+    const modal=document.getElementById('logout-confirm-modal');
+    modal?.classList.remove('show');
+    if(!document.getElementById('account-modal')?.classList.contains('show') &&
+       !document.getElementById('customize-modal')?.classList.contains('show') &&
+       !document.getElementById('info-modal')?.classList.contains('show')){
+      document.body.style.overflow='';
+    }
+  }
+
+  async function confirmLogout(){
+    const yes=document.querySelector('.logout-yes');
+    if(yes){yes.disabled=true;yes.textContent='Keluar...';}
     try{
       await auth.signOut();
       customerHistory=[];
+      closeLogoutConfirm();
       notify('Kamu sudah keluar dari akun.');
       renderAccountState();
     }catch(e){
+      if(yes){yes.disabled=false;yes.textContent='Ya, Keluar';}
       notify('Gagal keluar dari akun.','error');
     }
   }
@@ -1027,7 +1105,7 @@
             <strong>${escapeHtml(currentCustomer.displayName||'Pelanggan')}</strong>
             <span>${escapeHtml(currentCustomer.email||'Akun Google')}</span>
           </div>
-          <button class="account-logout" type="button" onclick="signOutCustomer()">Keluar</button>
+          <button class="account-logout" type="button" onclick="openLogoutConfirm()">Keluar</button>
         </div>`;
       loginSection.style.display='none';
     }else{
@@ -1500,7 +1578,7 @@
       document.getElementById('searchInput').focus();
       document.getElementById('searchInput').select();
     }
-    if(e.key==='Escape'){ closeCustomizer(); closeInfo(); closeAccountModal(); }
+    if(e.key==='Escape'){ closeCustomizer(); closeInfo(); closeLogoutConfirm(); closeAccountModal(); }
   });
 
   // CART
@@ -2000,6 +2078,7 @@
   document.getElementById('customize-modal').addEventListener('click',e=>{if(e.target.id==='customize-modal')closeCustomizer();});
   document.getElementById('info-modal').addEventListener('click',e=>{if(e.target.id==='info-modal')closeInfo();});
   document.getElementById('account-modal').addEventListener('click',e=>{if(e.target.id==='account-modal')closeAccountModal();});
+  document.getElementById('logout-confirm-modal').addEventListener('click',e=>{if(e.target.id==='logout-confirm-modal')closeLogoutConfirm();});
 
   document.getElementById('track-code-input').addEventListener('input',e=>{
     e.target.value=e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g,'').slice(0,12);
